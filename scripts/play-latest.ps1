@@ -2,7 +2,6 @@ $ErrorActionPreference = 'Stop'
 
 $projectRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 $previewDirectory = Join-Path $projectRoot '.preview'
-$romPath = Join-Path $previewDirectory 'digimon_rpg.gba'
 
 function Find-Mgba {
     $command = Get-Command 'mGBA.exe' -ErrorAction SilentlyContinue
@@ -36,16 +35,16 @@ if (-not $runs -or $runs.Count -eq 0) {
 }
 
 $run = $runs[0]
-New-Item -ItemType Directory -Force -Path $previewDirectory | Out-Null
+$runDirectory = Join-Path $previewDirectory $run.databaseId
+$romPath = Join-Path $runDirectory 'digimon_rpg.gba'
+New-Item -ItemType Directory -Force -Path $runDirectory | Out-Null
 
-if (Test-Path -LiteralPath $romPath) {
-    Remove-Item -LiteralPath $romPath
+if (-not (Test-Path -LiteralPath $romPath)) {
+    Write-Host "Downloading build $($run.databaseId)..."
+    gh run download $run.databaseId `
+        --name digimon-rpg-gba `
+        --dir $runDirectory
 }
-
-Write-Host "Downloading build $($run.databaseId)..."
-gh run download $run.databaseId `
-    --name digimon-rpg-gba `
-    --dir $previewDirectory
 
 if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $romPath)) {
     throw 'The latest ROM artifact could not be downloaded.'
