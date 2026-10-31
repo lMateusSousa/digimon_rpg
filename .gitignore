@@ -7,6 +7,7 @@
 # Generated reverse-engineering artifacts.
 analysis/generated/
 .preview/
+node_modules/
 
 # GBA build output.
 build/

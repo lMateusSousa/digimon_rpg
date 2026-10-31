@@ -6,8 +6,10 @@
   "scripts": {
     "analyze:rom": "node tools/analyze-rom.mjs",
     "build:gba": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-gba.ps1",
-    "play:latest": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/play-latest.ps1"
+    "play:latest": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/play-latest.ps1",
+    "prepare:sprites": "node tools/prepare-sprites.mjs"
+  },
+  "devDependencies": {
+    "sharp": "^0.35.5"
   }
 }
-
-

@@ -23,17 +23,24 @@ namespace digimon_rpg
         bn::sprite_text_generator _text_generator;
         bn::vector<bn::sprite_ptr, max_scene_sprites> _scene_sprites;
         int _player_sprite_index = -1;
+        int _selection_cursor_index = -1;
         int _player_x = 0;
         int _player_y = 16;
+        int _direction_base = 0;
+        int _animation_counter = 0;
+        int _animation_phase = 0;
 
         void change_scene(scene_id next_scene);
         void build_title_scene();
+        void build_partner_select_scene();
         void build_overworld_scene();
         void build_battle_scene();
         void update_title_scene();
+        void update_partner_select_scene();
         void update_overworld_scene();
         void update_battle_scene();
         void update_player_marker();
+        void update_player_graphics(bool moving);
     };
 }
 

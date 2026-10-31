@@ -34,6 +34,11 @@ A definir: formato das equipes, atributos, turnos, habilidades, elementos e cond
 
 A definir: parceiros iniciais, estágios evolutivos, famílias, atributos e métodos de digievolução.
 
+### Parceiros iniciais em protótipo
+
+- Herói Vermelho: réptil/dragão, elemento fogo, perfil corajoso e protetor.
+- Herói Azul: felino/canino, elemento gelo, perfil inteligente e estratégico.
+
 ## Escopo do primeiro protótipo
 
 - Tela de título.
