@@ -1,0 +1,12 @@
+{
+  "name": "digimon-rpg-research",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "analyze:rom": "node tools/analyze-rom.mjs",
+    "build:gba": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-gba.ps1"
+  }
+}
+
+

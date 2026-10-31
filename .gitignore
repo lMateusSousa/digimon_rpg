@@ -1,0 +1,18 @@
+# ROMs and save files are intentionally kept out of version control.
+*.gba
+*.rom
+*.sav
+*.HEYPIKACHU
+
+# Generated reverse-engineering artifacts.
+analysis/generated/
+
+# GBA build output.
+build/
+*.elf
+*.gba
+*.map
+*.sav
+*.srm
+
+

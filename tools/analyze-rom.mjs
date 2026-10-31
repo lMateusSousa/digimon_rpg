@@ -1,0 +1,284 @@
+import { createHash } from "node:crypto";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { basename, dirname, resolve } from "node:path";
+import process from "node:process";
+
+const GBA_BASE = 0x08000000;
+const MIN_ASCII_LENGTH = 6;
+const MIN_FREE_RUN = 256;
+
+function usage() {
+  console.error("Usage: node tools/analyze-rom.mjs <rom> [output-directory]");
+  process.exitCode = 1;
+}
+
+function hex(value, width = 8) {
+  return `0x${value.toString(16).toUpperCase().padStart(width, "0")}`;
+}
+
+function cleanAscii(buffer) {
+  return buffer.toString("ascii").replace(/\0+$/g, "").trimEnd();
+}
+
+function hash(buffer, algorithm) {
+  return createHash(algorithm).update(buffer).digest("hex");
+}
+
+function decodeArmEntry(instruction) {
+  if ((instruction & 0x0e000000) !== 0x0a000000) return null;
+  let displacement = instruction & 0x00ffffff;
+  if (displacement & 0x00800000) displacement |= 0xff000000;
+  displacement = displacement << 2;
+  return (GBA_BASE + 8 + displacement) >>> 0;
+}
+
+function calculateHeaderChecksum(rom) {
+  let checksum = 0;
+  for (let offset = 0xa0; offset <= 0xbc; offset += 1) {
+    checksum = (checksum - rom[offset]) & 0xff;
+  }
+  return (checksum - 0x19) & 0xff;
+}
+
+function extractAsciiStrings(rom) {
+  const strings = [];
+  let start = -1;
+
+  for (let offset = 0; offset <= rom.length; offset += 1) {
+    const byte = offset < rom.length ? rom[offset] : 0;
+    const printable = byte >= 0x20 && byte <= 0x7e;
+    if (printable && start < 0) start = offset;
+    if (!printable && start >= 0) {
+      if (offset - start >= MIN_ASCII_LENGTH) {
+        strings.push({
+          offset: start,
+          address: GBA_BASE + start,
+          length: offset - start,
+          text: rom.subarray(start, offset).toString("ascii"),
+        });
+      }
+      start = -1;
+    }
+  }
+  return strings;
+}
+
+function scanPointers(rom) {
+  const regions = new Map();
+  let count = 0;
+  for (let offset = 0; offset + 4 <= rom.length; offset += 4) {
+    const value = rom.readUInt32LE(offset);
+    if (value >= GBA_BASE && value < GBA_BASE + rom.length) {
+      count += 1;
+      const regionStart = Math.floor((value - GBA_BASE) / 0x100000) * 0x100000;
+      const label = `${hex(GBA_BASE + regionStart)}-${hex(GBA_BASE + regionStart + 0xfffff)}`;
+      regions.set(label, (regions.get(label) ?? 0) + 1);
+    }
+  }
+  return {
+    count,
+    targetRegions: [...regions.entries()]
+      .map(([region, pointers]) => ({ region, pointers }))
+      .sort((a, b) => b.pointers - a.pointers),
+  };
+}
+
+function validateLz77(rom, offset, outputLength) {
+  let input = offset + 4;
+  let output = 0;
+
+  while (output < outputLength && input < rom.length) {
+    const flags = rom[input++];
+    for (let bit = 7; bit >= 0 && output < outputLength; bit -= 1) {
+      if ((flags & (1 << bit)) === 0) {
+        if (input >= rom.length) return null;
+        input += 1;
+        output += 1;
+      } else {
+        if (input + 1 >= rom.length) return null;
+        const first = rom[input++];
+        const second = rom[input++];
+        const length = (first >> 4) + 3;
+        const displacement = ((first & 0x0f) << 8) | second;
+        if (displacement >= output) return null;
+        output += Math.min(length, outputLength - output);
+      }
+    }
+  }
+
+  if (output !== outputLength) return null;
+  return input - offset;
+}
+
+function scanLz77(rom) {
+  const blocks = [];
+  for (let offset = 0; offset + 4 < rom.length; offset += 4) {
+    if (rom[offset] !== 0x10) continue;
+    const outputLength = rom[offset + 1] | (rom[offset + 2] << 8) | (rom[offset + 3] << 16);
+    if (outputLength < 16 || outputLength > 0x400000) continue;
+    const compressedLength = validateLz77(rom, offset, outputLength);
+    if (compressedLength === null) continue;
+    blocks.push({
+      offset,
+      address: GBA_BASE + offset,
+      compressedLength,
+      outputLength,
+      ratio: Number((compressedLength / outputLength).toFixed(3)),
+    });
+  }
+  return blocks;
+}
+
+function scanFreeSpace(rom) {
+  const runs = [];
+  let start = 0;
+  let value = rom[0];
+
+  for (let offset = 1; offset <= rom.length; offset += 1) {
+    const byte = offset < rom.length ? rom[offset] : -1;
+    if (byte === value) continue;
+    const length = offset - start;
+    if ((value === 0x00 || value === 0xff) && length >= MIN_FREE_RUN) {
+      runs.push({ offset: start, address: GBA_BASE + start, length, value });
+    }
+    start = offset;
+    value = byte;
+  }
+  return runs.sort((a, b) => b.length - a.length);
+}
+
+function markdownReport(report) {
+  const topRegions = report.pointers.targetRegions
+    .slice(0, 10)
+    .map((item) => `| ${item.region} | ${item.pointers} |`)
+    .join("\n");
+  const topFree = report.freeSpace
+    .slice(0, 15)
+    .map((item) => `| ${hex(item.address)} | ${hex(item.offset)} | ${item.length} | ${hex(item.value, 2)} |`)
+    .join("\n");
+
+  return `# ROM analysis: ${report.file.name}
+
+Generated by \`tools/analyze-rom.mjs\`. The ROM itself is not stored in this repository.
+
+## Identity
+
+| Field | Value |
+| --- | --- |
+| Size | ${report.file.size} bytes (${report.file.sizeMiB} MiB) |
+| SHA-1 | \`${report.file.sha1}\` |
+| SHA-256 | \`${report.file.sha256}\` |
+| Title | \`${report.header.title}\` |
+| Game code | \`${report.header.gameCode}\` |
+| Maker code | \`${report.header.makerCode}\` |
+| Software version | ${report.header.softwareVersion} |
+| Fixed byte | ${hex(report.header.fixedByte, 2)} (${report.header.fixedByteValid ? "valid" : "invalid"}) |
+| Header checksum | ${hex(report.header.storedChecksum, 2)} (${report.header.checksumValid ? "valid" : `expected ${hex(report.header.calculatedChecksum, 2)}`}) |
+| ARM entry point | ${report.header.entryPoint === null ? "not decoded" : hex(report.header.entryPoint)} |
+
+## Structural scan
+
+- Printable ASCII strings (minimum ${MIN_ASCII_LENGTH} characters): ${report.asciiStrings.count}
+- Aligned pointers into ROM: ${report.pointers.count}
+- Valid-looking GBA LZ77 blocks: ${report.lz77.count}
+- Long runs of \`00\`/\`FF\` (minimum ${MIN_FREE_RUN} bytes): ${report.freeSpace.length}
+
+### Most referenced 1 MiB regions
+
+| Target range | Pointer count |
+| --- | ---: |
+${topRegions || "| none | 0 |"}
+
+### Largest blank/padding runs
+
+| ROM address | File offset | Bytes | Fill |
+| --- | --- | ---: | --- |
+${topFree || "| none | - | 0 | - |"}
+
+## Generated files
+
+- \`report.json\`: complete machine-readable scan
+- \`strings.tsv\`: printable ASCII strings with file offsets and ROM addresses
+- \`lz77.tsv\`: candidate compressed blocks
+
+## Limits of this pass
+
+This is a binary inventory, not a source-code recovery. Pokémon Gen III uses a custom text encoding, ARM/Thumb code, pointer tables, and compressed graphics. Deeper recovery requires domain-specific decoders and comparison against a matching Pokémon Emerald baseline.
+`;
+}
+
+async function main() {
+  const romArgument = process.argv[2];
+  if (!romArgument) return usage();
+
+  const romPath = resolve(romArgument);
+  const outputDirectory = resolve(process.argv[3] ?? "analysis/generated");
+  const rom = await readFile(romPath);
+  if (rom.length < 0xc0) throw new Error("File is too small to contain a GBA header.");
+
+  const entryInstruction = rom.readUInt32LE(0);
+  const calculatedChecksum = calculateHeaderChecksum(rom);
+  const strings = extractAsciiStrings(rom);
+  const lz77 = scanLz77(rom);
+  const freeSpace = scanFreeSpace(rom);
+  const report = {
+    generatedAt: new Date().toISOString(),
+    file: {
+      name: basename(romPath),
+      size: rom.length,
+      sizeMiB: Number((rom.length / 1024 / 1024).toFixed(2)),
+      sha1: hash(rom, "sha1"),
+      sha256: hash(rom, "sha256"),
+    },
+    header: {
+      entryInstruction: hex(entryInstruction),
+      entryPoint: decodeArmEntry(entryInstruction),
+      title: cleanAscii(rom.subarray(0xa0, 0xac)),
+      gameCode: cleanAscii(rom.subarray(0xac, 0xb0)),
+      makerCode: cleanAscii(rom.subarray(0xb0, 0xb2)),
+      fixedByte: rom[0xb2],
+      fixedByteValid: rom[0xb2] === 0x96,
+      unitCode: rom[0xb3],
+      deviceType: rom[0xb4],
+      softwareVersion: rom[0xbc],
+      storedChecksum: rom[0xbd],
+      calculatedChecksum,
+      checksumValid: rom[0xbd] === calculatedChecksum,
+    },
+    asciiStrings: { count: strings.length },
+    pointers: scanPointers(rom),
+    lz77: { count: lz77.length, blocks: lz77 },
+    freeSpace,
+  };
+
+  await mkdir(outputDirectory, { recursive: true });
+  const stringRows = ["offset\taddress\tlength\ttext"];
+  for (const item of strings) {
+    stringRows.push(`${hex(item.offset)}\t${hex(item.address)}\t${item.length}\t${item.text.replace(/\t/g, "\\t")}`);
+  }
+  const lzRows = ["offset\taddress\tcompressed_length\toutput_length\tratio"];
+  for (const item of lz77) {
+    lzRows.push(`${hex(item.offset)}\t${hex(item.address)}\t${item.compressedLength}\t${item.outputLength}\t${item.ratio}`);
+  }
+
+  await Promise.all([
+    writeFile(resolve(outputDirectory, "report.json"), `${JSON.stringify(report, null, 2)}\n`),
+    writeFile(resolve(outputDirectory, "strings.tsv"), `${stringRows.join("\n")}\n`),
+    writeFile(resolve(outputDirectory, "lz77.tsv"), `${lzRows.join("\n")}\n`),
+    writeFile(resolve(outputDirectory, "REPORT.md"), markdownReport(report)),
+  ]);
+
+  console.log(`Analyzed ${report.file.name}`);
+  console.log(`Game: ${report.header.title} (${report.header.gameCode})`);
+  console.log(`SHA-256: ${report.file.sha256}`);
+  console.log(`ASCII strings: ${report.asciiStrings.count}`);
+  console.log(`ROM pointers: ${report.pointers.count}`);
+  console.log(`LZ77 candidates: ${report.lz77.count}`);
+  console.log(`Report: ${resolve(outputDirectory, "REPORT.md")}`);
+}
+
+main().catch((error) => {
+  console.error(error.stack ?? error.message);
+  process.exitCode = 1;
+});
+
