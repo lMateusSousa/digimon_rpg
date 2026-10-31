@@ -6,6 +6,7 @@
 
 # Generated reverse-engineering artifacts.
 analysis/generated/
+.preview/
 
 # GBA build output.
 build/

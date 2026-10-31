@@ -23,6 +23,16 @@ npm run build:gba
 
 A saída esperada é `digimon_rpg.gba`.
 
+## Ver a versão mais recente
+
+Com o mGBA e o GitHub CLI instalados e autenticados:
+
+```powershell
+npm run play:latest
+```
+
+O comando baixa a última compilação bem-sucedida do GitHub Actions e abre a ROM no mGBA.
+
 ## Ferramenta de pesquisa
 
 ```powershell
