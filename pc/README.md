@@ -10,6 +10,6 @@ Para abrir o editor: `npm run editor:pc`
 
 ## Controles
 
-- P1: `A/D` move, `W` pula, `F` golpe leve, `G` golpe forte, `H` especial e `R` defende.
+- P1: `A/D` move, `W` pula, `E` executa dash, `F` golpe leve, `G` golpe forte, `H` especial, `R` defende e `T` provoca.
 - `F2` alterna entre adversário controlado pela CPU e dois jogadores.
-- P2: setas movem, `J/K/L` atacam e `I` defende.
+- P2: setas movem, `U` executa dash, `J/K/L` atacam, `I` defende e `O` provoca.

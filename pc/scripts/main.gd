@@ -28,11 +28,11 @@ func _ready() -> void:
 	floor_body.add_child(floor_collision)
 	add_child(floor_body)
 	red = Fighter.new()
-	red.setup("Herói Vermelho", 1, load("res://assets/heroi_vermelho_battle.png"), false)
+	red.setup("Herói Vermelho", 1, load("res://assets/heroi_vermelho_guide_atlas.png"), false)
 	red.position = Vector2(360, 604)
 	add_child(red)
 	blue = Fighter.new()
-	blue.setup("Herói Azul", 2, load("res://assets/heroi_azul_battle.png"), true)
+	blue.setup("Herói Azul", 2, load("res://assets/heroi_azul_guide_atlas.png"), true)
 	blue.position = Vector2(920, 604)
 	add_child(blue)
 	red.opponent = blue
@@ -94,9 +94,11 @@ func _on_fighter_defeated(loser: DigitalFighter) -> void:
 	blue.set_physics_process(false)
 	if loser == blue:
 		red_rounds += 1
+		red.play_victory()
 		hud.set_message("HERÓI VERMELHO VENCEU!")
 	else:
 		blue_rounds += 1
+		blue.play_victory()
 		hud.set_message("HERÓI AZUL VENCEU!")
 	hud.set_rounds(red_rounds, blue_rounds)
 

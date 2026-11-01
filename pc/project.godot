@@ -19,6 +19,10 @@ renderer/rendering_method.mobile="gl_compatibility"
 textures/default_filters/use_nearest_mipmap_filter=false
 textures/canvas_textures/default_texture_filter=0
 
+[physics]
+common/physics_ticks_per_second=60
+common/physics_interpolation=true
+
 [input]
 p1_left={"deadzone":0.5,"events":[Object(InputEventKey,"physical_keycode":65)]}
 p1_right={"deadzone":0.5,"events":[Object(InputEventKey,"physical_keycode":68)]}
@@ -28,6 +32,8 @@ p1_light={"deadzone":0.5,"events":[Object(InputEventKey,"physical_keycode":70)]}
 p1_heavy={"deadzone":0.5,"events":[Object(InputEventKey,"physical_keycode":71)]}
 p1_special={"deadzone":0.5,"events":[Object(InputEventKey,"physical_keycode":72)]}
 p1_block={"deadzone":0.5,"events":[Object(InputEventKey,"physical_keycode":82)]}
+p1_dash={"deadzone":0.5,"events":[Object(InputEventKey,"physical_keycode":69)]}
+p1_taunt={"deadzone":0.5,"events":[Object(InputEventKey,"physical_keycode":84)]}
 p2_left={"deadzone":0.5,"events":[Object(InputEventKey,"physical_keycode":4194311)]}
 p2_right={"deadzone":0.5,"events":[Object(InputEventKey,"physical_keycode":4194313)]}
 p2_jump={"deadzone":0.5,"events":[Object(InputEventKey,"physical_keycode":4194320)]}
@@ -36,6 +42,8 @@ p2_light={"deadzone":0.5,"events":[Object(InputEventKey,"physical_keycode":74)]}
 p2_heavy={"deadzone":0.5,"events":[Object(InputEventKey,"physical_keycode":75)]}
 p2_special={"deadzone":0.5,"events":[Object(InputEventKey,"physical_keycode":76)]}
 p2_block={"deadzone":0.5,"events":[Object(InputEventKey,"physical_keycode":73)]}
+p2_dash={"deadzone":0.5,"events":[Object(InputEventKey,"physical_keycode":85)]}
+p2_taunt={"deadzone":0.5,"events":[Object(InputEventKey,"physical_keycode":79)]}
 
 [layer_names]
 2d_physics/layer_1="Fighters"

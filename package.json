@@ -7,9 +7,11 @@
     "analyze:rom": "node tools/analyze-rom.mjs",
     "build:gba": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-gba.ps1",
     "editor:pc": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/edit-pc.ps1",
+    "extract:guide-sprites": "node tools/extract-guide-sprites.mjs",
     "play:latest": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/play-latest.ps1",
     "play:pc": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/play-pc.ps1",
-    "prepare:sprites": "node tools/prepare-sprites.mjs"
+    "prepare:sprites": "node tools/prepare-sprites.mjs",
+    "test:pc": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test-pc.ps1"
   },
   "devDependencies": {
     "sharp": "^0.35.5"

@@ -27,7 +27,7 @@ func _draw() -> void:
 	draw_string(font, Vector2(1222, 34), "HERÓI AZUL", HORIZONTAL_ALIGNMENT_RIGHT, 500, 22, Color.WHITE)
 	draw_string(font, Vector2(560, 70), "%d - %d" % [red_rounds, blue_rounds], HORIZONTAL_ALIGNMENT_CENTER, 160, 28, Color("fff4d2"))
 	draw_string(font, Vector2(390, 118), message, HORIZONTAL_ALIGNMENT_CENTER, 500, 30, Color.WHITE)
-	draw_string(font, Vector2(22, 694), "P1: A/D mover  W pular  F soco  G golpe  H especial  R defender", HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color("e9e2ff"))
+	draw_string(font, Vector2(22, 694), "P1: A/D mover  W pular  E dash  F/G/H ataques  R defender  T provocar", HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color("e9e2ff"))
 	var mode_text := "F2: CPU ligada" if cpu_enabled else "F2: 2 jogadores | P2: setas + J/K/L/I"
 	draw_string(font, Vector2(638, 694), mode_text, HORIZONTAL_ALIGNMENT_RIGHT, 620, 18, Color("e9e2ff"))
 
