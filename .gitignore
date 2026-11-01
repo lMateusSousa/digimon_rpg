@@ -9,6 +9,10 @@ analysis/generated/
 .preview/
 node_modules/
 
+# Godot cache and PC exports.
+pc/.godot/
+pc/build/
+
 # GBA build output.
 build/
 *.elf
